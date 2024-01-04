@@ -1,26 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { CreateVisitorDto } from './dto/create-visitor.dto';
 import { UpdateVisitorDto } from './dto/update-visitor.dto';
+import { Site, Visitor } from './entities/visitor.entity';
+import mongoose from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class VisitorService {
-  create(createVisitorDto: CreateVisitorDto) {
-    return 'This action adds a new visitor';
+  constructor(
+    @InjectModel(Visitor.name)
+    private visitorModel: mongoose.Model<Visitor>,
+  ) {}
+  async create(createVisitorDto: CreateVisitorDto) {
+    return await this.visitorModel.create(createVisitorDto);
   }
 
   findAll() {
     return `This action returns all visitor`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} visitor`;
+  findOne(type: Site) {
+    return this.visitorModel.findOne({ type });
   }
 
-  update(id: number, updateVisitorDto: UpdateVisitorDto) {
-    return `This action updates a #${id} visitor`;
+  async update(updateVisitorDto: UpdateVisitorDto) {
+    const site = await this.findOne(updateVisitorDto.type);
+    console.log('site:', site);
+    return this.visitorModel.updateOne(
+      { type: site.type },
+      { count: site.count + 1 },
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} visitor`;
-  }
+  //   remove(type: Site) {
+  //     return `This action removes a #${type} visitor`;
+  //   }
 }

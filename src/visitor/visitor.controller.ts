@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { VisitorService } from './visitor.service';
 import { CreateVisitorDto } from './dto/create-visitor.dto';
 import { UpdateVisitorDto } from './dto/update-visitor.dto';
+import { Site } from './entities/visitor.entity';
 
 @Controller('visitor')
 export class VisitorController {
@@ -17,18 +26,18 @@ export class VisitorController {
     return this.visitorService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.visitorService.findOne(+id);
+  @Get('site')
+  findOne(@Param('site') site: Site) {
+    return this.visitorService.findOne(site);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateVisitorDto: UpdateVisitorDto) {
-    return this.visitorService.update(+id, updateVisitorDto);
+  @Patch()
+  update(@Body() updateVisitorDto: UpdateVisitorDto) {
+    return this.visitorService.update(updateVisitorDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.visitorService.remove(+id);
-  }
+  // @Delete(':site')
+  // remove(@Param('site') site: Site) {
+  //   return this.visitorService.remove(site);
+  // }
 }
