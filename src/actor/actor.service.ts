@@ -118,11 +118,8 @@ export class ActorService {
   findByBirthday(date: string): Promise<Actor[]> {
     try {
       const birthday = moment(date, 'YYYY-MM-DD');
-      console.log('birthday:', birthday);
       const day = birthday.date();
-      console.log('day:', day);
       const month = birthday.month() + 1;
-      console.log('month:', month);
 
       return this.ActorModel.find({
         $expr: {
