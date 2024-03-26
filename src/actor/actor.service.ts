@@ -8,6 +8,7 @@ import { Actor, ActorDocument } from './entities/actor.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as moment from 'moment';
+import { count } from 'console';
 export interface FileLineError {
   lineNumber: number;
   error: string;
@@ -29,6 +30,9 @@ export interface RawReceivedFile {
   popularity: number;
   profile_path: string;
 }
+
+export const ACTORS_GENERATE = 10;
+export const TOTAL_CHOICES = 4;
 @Injectable()
 export class ActorService {
   constructor(
@@ -96,6 +100,7 @@ export class ActorService {
       });
     }
   }
+
   async create(
     createActorDto: CreateActorDto,
     lineNumber?: number,
@@ -112,7 +117,14 @@ export class ActorService {
   }
 
   async findAll() {
-    return await this.ActorModel.find().exec();
+    const actors = await this.ActorModel.aggregate([
+      { $match: { birthday: { $exists: true, $ne: null } } },
+    ]);
+
+    return {
+      // actors,
+      count: actors.length,
+    };
   }
 
   findByBirthday(date: string): Promise<Actor[]> {
@@ -132,5 +144,87 @@ export class ActorService {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  // Get random actors
+  async getRandomActors(count: number): Promise<Actor[]> {
+    const actors = await this.ActorModel.aggregate([
+      { $match: { birthday: { $exists: true, $ne: null } } },
+      { $sample: { size: count } },
+      {
+        $project: { name: 1, profile_path: 1, birthday: 1, _id: 0, gender: 1 },
+      },
+    ]);
+    return actors;
+  }
+
+  // Generate choice for actor
+  generateChoices(actor: Actor, totalChoices: number): Partial<Actor[]> {
+    const choices = [] as Actor[];
+
+    for (let i = 0; i < totalChoices; i++) {
+      const actorCopy = { ...actor }; // Créer une copie de l'acteur à chaque itération
+      if (i === 0) {
+        choices.push(actorCopy);
+      } else {
+        actorCopy.birthday = this.generateFakeBirthday(actorCopy.birthday);
+        choices.push(actorCopy);
+      }
+    }
+
+    return choices;
+  }
+
+  async generateActorsWithQuizzes(count: number): Promise<Actor[][]> {
+    const actors = await this.getRandomActors(count);
+    const quizzes = [] as Actor[][];
+
+    for (const actor of actors) {
+      const quiz = this.generateChoices(actor, TOTAL_CHOICES);
+      quizzes.push(quiz);
+    }
+
+    return quizzes;
+  }
+
+  generateFakeBirthday(originalBirthday: string): string {
+    const fakeAge = new Date(originalBirthday);
+    fakeAge.setFullYear(
+      fakeAge.getFullYear() + Math.floor(Math.random() * 12) + 1,
+    );
+    return fakeAge.toISOString().slice(0, 10);
+  }
+
+  // Name Quizz
+  async generateActorsAndFakeNames(count: number): Promise<any[][]> {
+    const actors = await this.getRandomActors(count);
+    const quizzes = [];
+
+    for (const actor of actors) {
+      const fakeNames = await this.generateFakeNames(
+        actor.gender,
+        actor.name,
+        3,
+      );
+      const quiz = [actor, ...fakeNames];
+      quizzes.push(quiz);
+    }
+
+    return quizzes;
+  }
+
+  async generateFakeNames(
+    gender: number,
+    originalName: string,
+    count: number,
+  ): Promise<Partial<Actor>[]> {
+    const fakeNames = await this.ActorModel.aggregate([
+      { $match: { gender, name: { $ne: originalName } } }, // Exclure le nom original de l'acteur
+      { $sample: { size: count } },
+      {
+        $project: { name: 1, profile_path: 1, birthday: 1, gender: 1, _id: 0 },
+      },
+    ]);
+    return fakeNames;
   }
 }
